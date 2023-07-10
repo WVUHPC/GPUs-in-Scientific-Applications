@@ -1,6 +1,5 @@
 ---
-title: "Introduction"
-start: 600 
+title: "Deep Learning"
 teaching: 60
 exercises: 0
 questions:

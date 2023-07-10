@@ -1,5 +1,5 @@
 ---
-title: "Introduction"
+title: "Molecular Dynamics"
 start: 600 
 teaching: 60
 exercises: 0

@@ -1,6 +1,5 @@
 ---
-title: "Introduction"
-start: 600 
+title: "Other Applications"
 teaching: 60
 exercises: 0
 questions:
