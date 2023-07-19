@@ -12,50 +12,44 @@ keypoints:
 - "OpenMP uses several cores on the same machine as all the cores are able to address the same memory"
 - "OpenACC is capable to use both multiple cores and accelerators such as GPUs"
 - "MPI is used for distributed parallel computing. Being able to use cores on different compute nodes."
-- "OpenCL is an effort for a platform independent model for hybrid computing"
+- "OpenCL is an effort for a platform-independent model for hybrid computing"
 - "CUDA is the model used by NVIDIA for accessing compute power from NVIDIA GPUs"
 ---
 
-We will pursue and exploration of several paradigms in parallel computing, from purely CPU computing to GPU computing. The paradigms chosen were OpenMP, OpenACC, OpenCL, MPI and CUDA. By using the same problem as baseline we hope to give a sense of perspective of how those different alternatives of parallelization work in practice.
+We will pursue an exploration of several paradigms in parallel computing, from purely CPU computing to GPU computing. The paradigms chosen were OpenMP, OpenACC, OpenCL, MPI, and CUDA. By using the same problem as baseline we hope to give a sense of perspective of how those different alternatives of parallelization work in practice.
 
-We will be solving a very simple problem. The DAXPY function is the name given in BLAS to a routine that implements the function Y = A * X + Y where X and Y may be either native double-precision valued matrices or numeric vectors, and A is a scalar. We will be computing a trigonometric identity using DAXPY as the function that will be target of parallelization.
+We will be solving a very simple problem. The DAXPY function is the name given in BLAS to a routine that implements the function Y = A * X + Y where X and Y may be either native double-precision valued matrices or numeric vectors, and A is a scalar. We will be computing a trigonometric identity using DAXPY as the function that will be the target of parallelization.
 
 We will compute this formula:
 
-<img src="https://render.githubusercontent.com/render/math?math=cos(2x) = cos^2(x)-sin^2(x)">
+$$cos(2x) = cos^2(x)-sin^2(x)$$
 
 **The Cauchy-Schwarz Inequality**
 
 $$\left( \sum_{k=1}^n a_k b_k \right)^2 \leq \left( \sum_{k=1}^n a_k^2 \right) \left( \sum_{k=1}^n b_k^2 \right)$$
 
-**The Cauchy-Schwarz Inequality**
-
-```math
-\left( \sum_{k=1}^n a_k b_k \right)^2 \leq \left( \sum_{k=1}^n a_k^2 \right) \left( \sum_{k=1}^n b_k^2 \right)
-```
-
-    <p id="This_Is_What_I_Want"> $$ (a-b)^2 $$</p>
-    <p id="First_Input"> <input id="Value_A"></p>
-    <p id="Second_Input"> <input id="Value_B"></p>
-    <p id="Output"></p>
-    <p id="Activate"><button onclick="RUN()">Test This out</button></p>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS_HTML,http://myserver.com/MathJax/config/local/local.js">
+<p id="This_Is_What_I_Want"> $$ (a-b)^2 $$</p>
+<p id="First_Input"> <input id="Value_A"></p>
+<p id="Second_Input"> <input id="Value_B"></p>
+<p id="Output"></p>
+<p id="Activate"><button onclick="RUN()">Test This out</button></p>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS_HTML,http://myserver.com/MathJax/config/local/local.js">
         function RUN() {
             var a = document.getElementById("Value_A").value
             var b = document.getElementById("Value_B").value
             document.getElementById("Output").innerHTML = "$$ (" + a + "-" + b + ")^2 $$";
             MathJax.Hub.Queue(["Typeset", MathJax.Hub]);
         }
-    </script>
+</script>
 
-For an array of vectors in a domain in the range of <img src="https://render.githubusercontent.com/render/math?math=x=[0:\pi]">
+For an array of vectors in a domain in the range of $x=[0:\pi]$
 
-All the codes in this lesson will be compiled with the NVIDIA HPC compilers. That will give us some uniformity on the compiler choose as this compiler support several of the parallel models that will be demostrated.
+All the codes in this lesson will be compiled with the NVIDIA HPC compilers. That will give us some uniformity on the compiler choice as this compiler supports several of the parallel models that will be demonstrated.
 
 To access the compilers on Thorny you need to load the module:
 
 ~~~
-$> module load lang/nvidia/nvhpc/20.7
+$> module load lang/nvidia/nvhpc/23.3   
 ~~~
 {: .language-bash}
 
@@ -69,20 +63,20 @@ $> nvc --version
 You should get something like:
 
 ~~~
-nvc 20.7-0 LLVM 64-bit target on x86-64 Linux -tp skylake
+nvc 23.3-0 64-bit target on x86-64 Linux -tp skylake-avx512 
 NVIDIA Compilers and Tools
-Copyright (c) 2020, NVIDIA CORPORATION.  All rights reserved.
+Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
 ~~~
 {: .output}
 
 
 ## Serial Code
 
-We will start without parallelization. The term given to codes that uses one single sequence of instructions is *serial*. We will use this to explain a few of the basic elements of C programming for those not familiar with the language.
+We will start without parallelization. The term given to codes that use one single sequence of instructions is *serial*. We will use this to explain a few of the basic elements of C programming for those not familiar with the language.
 
-The C programming language uses plain texts files to describe the program. The code needs to be compiled. Compiling means that using a software package called *compiler* the text file is interpreted resulting in a new file that contains the instructions that the computer can follow directly to run the program.
+The C programming language uses plain text files to describe the program. The code needs to be compiled. Compiling means that using a software package called *compiler* the text file is interpreted resulting in a new file that contains the instructions that the computer can follow directly to run the program.
 
-The program below shows a code that populates two vectors and computes a new vector being the subtraction of the input vectors.
+The program below shows a code that populates two vectors and computes a new vector, the subtraction of the input vectors.
 Here is the code:
 
 ~~~
@@ -218,14 +212,14 @@ return 0;
 ~~~
 {: .language-c}
 
-Here we have a conditional, for small arrays we will print the entire set of arrays, X, A, B and C as 4 columns of text on the screen. For larger arrays only the last 10 elements are shown.
+Here we have a conditional, for small arrays we will print the entire set of arrays, X, A, B, and C as 4 columns of text on the screen. For larger arrays only the last 10 elements are shown.
 
-Notice how to indicate the format of the numbers that will be shown on screen.
-The string `%9.5f` means that each number will have 9 characters to display with 5 of them being decimals.  The character `f` means that the content of an floating point number will be shown. Other indicators are `f` for floats, `d` for integers and `s` for strings.
+Notice how to indicate the format of the numbers that will be shown on the screen.
+The string `%9.5f` means that each number will have 9 characters to display with 5 of them being decimals.  The character `f` means that the content of a floating point number will be shown. Other indicators are `f` for floats, `d` for integers, and `s` for strings.
 
 The next lines deallocate the memory used for the 4 arrays. Every program in written in C should return an integer at the end, with 0 meaning a successful completion of the program. Any other return value can be interpreted as some sort of failure.
 
-To compile the code execute:
+To compile the code, execute:
 
 ~~~
 $> nvc daxpy_serial.c
@@ -337,24 +331,24 @@ for(i=0;i<VECTOR_SIZE;i++){
 ~~~
 {: .language-c}
 
-These two `#pragma` lines are sit on top of the for loops. From the point of view of the C language, they are just comments, so the language itself is not concern with them. A C compiler that support OpenMP will interpret those lines and will parallelize the for loops. The parallelization is posible because each evaluation of the `i` element is independent from the `j` element. That independence allows for different evaluations go to different cores.
+These two `#pragma` lines are sit on top of the for loops. From the point of view of the C language, they are just comments, so the language itself is not concerned with them. A C compiler that supports OpenMP will interpret those lines and will parallelize the for loops. The parallelization is possible because each evaluation of the `i` element is independent from the `j` element. That independence allows for different evaluations go to different cores.
 
-There are several directives in the OpenMP specification. The directive `omp parallel for`, that is specific to parallelize for loops. There are others for assign executions to a core. For the parallel for directive there are arguments, one important set is the `shared` and `private` arguments that declare which variables will be shared on all the threads created by OpenMP and for which variables a copy will be created independent for each thread. The index `i` and the thread number `id` are always private. In this example, the variables are being declared explicitly even if that is not always needed.
+There are several directives in the OpenMP specification. The directive `omp parallel for`, is specific to parallelize for loops. There are others for assigning executions to a core. For the parallel for directive there are arguments, one important set is the `shared` and `private` arguments that declare which variables will be shared on all the threads created by OpenMP and for which variables a copy will be created independently for each thread. The index `i` and the thread number `id` are always private. In this example, the variables are being declared explicitly even if that is not always needed.
 
-The final argument is `schedule(static,10)` when the indices will be assign in chunks of 10.
+The final argument is `schedule(static,10)` when the indices will be assigned in chunks of 10.
 
 OpenMP is a good option for easy parallelization of codes, but before OpenMP 4.0 the model was restricted only to parallelization with CPUs.
 
 ## MPI: Distributed Parallel Programming
 
-Message Passing Interface (MPI) is a communication protocol for programming parallel computers. It is designed to be allow coordination of multiple cores on machines when cores are potentially independent, such as HPC clusters.
+Message Passing Interface (MPI) is a communication protocol for programming parallel computers. It is designed to be allow the coordination of multiple cores on machines when cores are potentially independent, such as HPC clusters.
 
 With MPI point-to-point and collective communication are supported.
-Point to point communication is when one process send a message to another specific process, different processes are differentiated by their rank, an integer that uniquely identify the process.
+Point-to-point communication is when one process sends a message to another specific process, different processes are differentiated by their rank, an integer that uniquely identifies the process.
 
 MPI's goals are high performance, scalability, and portability. MPI remains the dominant model used in high-performance computing today.
 
-The code below solves is a rewrite of the original serial program using point to point functions to distribute the computation across several MPI processes.
+The code below solves a rewrite of the original serial program using point-to-point functions to distribute the computation across several MPI processes.
 
 ~~~
 #include "mpi.h"
@@ -464,9 +458,9 @@ MPI_Comm_rank (MPI_COMM_WORLD, &rank); //The rank of the current process
 ~~~
 {: .language-c}
 
-In here we see a call to `MPI_Init()` the very first MPI function that must be call before any other. A variable `MPI_Status` is added to be used later for the receiving function. The call to `MPI_Comm_size` and `MPI_Comm_rank` will retrieve the total number of processes involved in the calculation, a number that could change at runtime. Each individual process receives a number called `rank` and we are storing the integer in the variable with that name.
+Here we see a call to `MPI_Init()` the very first MPI function that must be call before any other. A variable `MPI_Status` is added to be used later for the receiving function. The call to `MPI_Comm_size` and `MPI_Comm_rank` will retrieve the total number of processes involved in the calculation, a number that could change at runtime. Each individual process receives a number called `rank` and we are storing the integer in the variable with that name.
 
-In MPI we can avoid allocating big arrays full size in memory, but just allocating the portion of the array that will be used on each rank we can decrease the overall memory usage. A poorly written code will allocate entire arrays and used just a portion of the values. In here we are just allocating the amount of data actually needed.
+In MPI we can avoid allocating big arrays full size in memory, but just allocating the portion of the array that will be used on each rank we can decrease the overall memory usage. A poorly written code will allocate entire arrays and use just a portion of the values. Here we are just allocating the amount of data actually needed.
 
 ~~~
 n_per_proc = VECTOR_SIZE/total_proc;
@@ -520,7 +514,7 @@ else{
 ~~~
 {: .language-c}
 
-The MASTER rank (usually 0) will receive the data from the other ranks, and it could be used to assemble the complete array or simply to continue the execution based on the data processed by all the ranks. In this simple example we are just printing the data. The important lines here are:
+The MASTER rank (usually 0) will receive the data from the other ranks, and it could be used to assemble the complete array or simply to continue the execution based on the data processed by all the ranks. In this simple example, we are just printing the data. The important lines here are:
 
 ~~~
 MPI_Bsend(cp, n_per_proc, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
@@ -549,9 +543,9 @@ The calls `MPI_Init()` and `MPI_Finalize()` are the first and last MPI functions
 
 # OpenCL: A model for heterogeneous parallel computing
 
-OpenCL is a framework for writing programs that execute across heterogeneous platforms consisting of CPUs, GPUs, digital signal processors, field-programmable gate arrays and other processors or hardware accelerators. OpenCL specifies programming languages for programming these devices and application programming interfaces to control the platform and execute programs on the compute devices.
+OpenCL is a framework for writing programs that execute across heterogeneous platforms consisting of CPUs, GPUs, digital signal processors, field-programmable gate arrays, and other processors or hardware accelerators. OpenCL specifies programming languages for programming these devices and application programming interfaces to control the platform and execute programs on the computing devices.
 
-Our program writen in OpenCL looks like this:
+Our program written in OpenCL looks like this:
 
 ~~~
 #include <stdio.h>
@@ -802,13 +796,13 @@ return 0;
 ~~~
 {: .language-c}
 
-The final section clean the memory from the device, print the values of the arrays as we did on the serial code and free the memory on the host.
+The final section cleans the memory from the device, print the values of the arrays as we did on the serial code and free the memory on the host.
 
 ## OpenACC: Model for heterogeneous parallel programming
 
-OpenACC (for open accelerators) is a programming standard for parallel computing developed by Cray, CAPS, Nvidia and PGI. The standard is designed to simplify parallel programming of heterogeneous CPU/GPU systems.
+OpenACC (for open accelerators) is a programming standard for parallel computing developed by Cray, CAPS, Nvidia and PGI. The standard is designed to simplify the parallel programming of heterogeneous CPU/GPU systems.
 
-OpenACC is similar to OpenMP. In OpenMP, the programmer can annotate C, C++ and Fortran source code to identify the areas that should be accelerated using compiler directives and additional functions. Like OpenMP 4.0 and newer, OpenACC can target both the CPU and GPU architectures and launch computational code on them.
+OpenACC is similar to OpenMP. In OpenMP, the programmer can annotate C, C++, and Fortran source code to identify the areas that should be accelerated using compiler directives and additional functions. Like OpenMP 4.0 and newer, OpenACC can target both the CPU and GPU architectures and launch computational code on them.
 
 ~~~
 #include <stdio.h>
@@ -880,9 +874,35 @@ How OpenACC works is better understood with a more deep understanding of CUDA. T
 
 ## CUDA: Parallel Computing on NVIDIA GPUs
 
-CUDA (Compute Unified Device Architecture) is a parallel computing platform and application programming interface (API) model created by NVIDIA to work on its GPUs. The purpose of CUDA is leverage general purpose computing on CUDA-enabled graphics processing unit (GPU) sometimes termed GPGPU (General-Purpose computing on Graphics Processing Units).
+CUDA (Compute Unified Device Architecture) is a parallel computing platform and application programming interface (API) model created by NVIDIA to work on its GPUs. The purpose of CUDA is to leverage general-purpose computing on CUDA-enabled graphics processing unit (GPU) sometimes termed GPGPU (General-Purpose computing on Graphics Processing Units).
 
 The CUDA platform is a software layer that gives direct access to the GPU's virtual instruction set and parallel computational elements, for the execution of compute kernels. CUDA works as a superset of the C language and as such it cannot be compiled on a normal C language compiler. CUDA provides what is called the CUDA Toolkit a set of tools to compile and run programs written in CUDA.
+
+To access the CUDA compilers on Thorny you need to load the module:
+
+~~~
+$> module load lang/nvidia/nvhpc/23.3   
+~~~
+{: .language-bash}
+
+To check that the compiler is available execute:
+
+~~~
+$> nvcc --version
+~~~
+{: .language-bash}
+
+You should get something like:
+
+~~~
+nvcc: NVIDIA (R) Cuda compiler driver
+Copyright (c) 2005-2023 NVIDIA Corporation
+Built on Fri_Jan__6_16:45:21_PST_2023
+Cuda compilation tools, release 12.0, V12.0.140
+Build cuda_12.0.r12.0/compiler.32267302_0
+~~~
+{: .output}
+
 
 ~~~
 #include <stdio.h>
@@ -989,7 +1009,7 @@ __global__ void add_vectors(double alpha, double *a, double *b, double *c)
 ~~~
 {: .language-c}
 
-The function `add_vectors` will operate on the GPU using memory allocated on the device. The integer `id` will be associated to the exact index in the array based on the indices of thread and block the main components in the thread hierarchy of execution in CUDA.
+The function `add_vectors` will operate on the GPU using memory allocated on the device. The integer `id` will be associated to the exact index in the array based on the indices of the thread and block the main components in the thread hierarchy of execution in CUDA.
 
 ~~~
 // Allocate memory for arrays d_A, d_B, and d_C on device
@@ -1000,7 +1020,7 @@ cudaMalloc(&d_C, bytes);
 ~~~
 {: .language-c}
 
-On this section the memory on the device is allocated. Those allocations are different from the arrays on the host and next lines will transfer data from the host to the device:
+In this section, the memory on the device is allocated. Those allocations are different from the arrays on the host and next lines will transfer data from the host to the device:
 
 ~~~
 // Copy data from host arrays A and B to device arrays d_A and d_B
@@ -1009,7 +1029,7 @@ cudaMemcpy(d_B, B, bytes, cudaMemcpyHostToDevice);
 ~~~
 {: .language-c}
 
-The operation of transfer data from the host to the device is a blocking operation. The execution will not return to the CPU until the transfer is completed.
+The operation of transferring data from the host to the device is a blocking operation. The execution will not return to the CPU until the transfer is completed.
 
 ~~~
 // Set execution configuration parameters
@@ -1026,12 +1046,10 @@ cudaMemcpy(C, d_C, bytes, cudaMemcpyDeviceToHost);
 ~~~
 {: .language-c}
 
-On this section we decide two important numbers in CUDA executionn that affect performance. The number of threads per block and the number of blocks in the grid. CUDA organizes parallel executions in threads those threads are grouped in a 3D arrays called blocks and blocks are arranged in a 3D array called a grid. For the simple case above we have just unidimensional blocks and unidimensional grids.
+In this section, we decide two important numbers in CUDA execution that affect performance. The number of threads per block and the number of blocks in the grid. CUDA organizes parallel executions in threads those threads are grouped in a 3D array called blocks and blocks are arranged in a 3D array called a grid. For the simple case above we have just unidimensional blocks and unidimensional grids.
 
-The call to `add_vectors` is a non-blocking operation. Execution return to the host as soon as the function is called. The device will work on that function independent from the host.
+The call to `add_vectors` is a non-blocking operation. Execution returns to the host as soon as the function is called. The device will work on that function independently from the host.
 
-Only the function `cudaMemcpy()` will impose a barrier, waiting for the device to complete execution before copying the data back from device to host.
-
-On the next lessons we will focus on CUDA to learn how to program GPUs and finally OpenACC a simpler model for fast offload of computation to the GPUs as we saw before.
+Only the function `cudaMemcpy()` will impose a barrier, waiting for the device to complete execution before copying the data back from the device to the host.
 
 {% include links.md %}
