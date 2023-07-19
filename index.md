@@ -15,7 +15,7 @@ Introduction to GPU programming, focused on CUDA and OpenACC two paradigms for N
 {: .prereq}
 
 <h2 text-align="center">
-<a href="https://wvuhpc.github.io//GPUs_in_Scientific_Applications">Workshop Webpage</a> 
+<a href="https://wvuhpc.github.io/GPUs_in_Scientific_Applications">Workshop Webpage</a> 
 </h2>
 
 {% include links.md %}
