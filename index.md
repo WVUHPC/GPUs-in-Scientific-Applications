@@ -14,4 +14,8 @@ Introduction to GPU programming, focused on CUDA and OpenACC two paradigms for N
 > This lesson assumes familiarity with C Programming, CUDA is a superset of the C programming language. The basic elements of the language will be explained during the first examples.
 {: .prereq}
 
+<h2 text-align="center">
+<a href="https://wvuhpc.github.io//GPUs_in_Scientific_Applications">Workshop Webpage</a> 
+</h2>
+
 {% include links.md %}
