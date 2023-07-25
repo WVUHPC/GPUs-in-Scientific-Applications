@@ -36,6 +36,61 @@ As such GPUs were designed for very specific tasks and not all tasks can be effi
 
 First is CPU multithreading execution. In the next lesson we will demonstrate one example of OpenMP a popular model for these kind of parallelism. In CPU multithreading we use the ability of modern CPUs to have several cores that see the same memory. The next level is coprocessor parallelism, exemplified with OpenACC, OpenCL and CUDA. Using for example GPUs certain tasks what require many threads with relatively small amount of memory can be processed on those devices and get an advantage from them. The final level is distributed computing with a prototypical case is MPI. We will demonstrate a brief example of MPI in the next lesson but it is out of scope for this workshop.
 
+## Accelerators (like GPUs) in the world largest supercomputers
+
+NVIDIA GPUs Powered 168 of The Top500 Supercomputers On The Planet.
+Eight of the world’s top 10 supercomputers now use NVIDIA GPUs, InfiniBand networking or both. They include the most powerful systems in the U.S., Europe and China.
+The fastest supercomputers all rely on Accelerators.
+More than 50% of the computational power in the top500 comes from accelerators.
+
+As per the latest figures, it looks like NVIDIA GPUs are powering the bulk of the supercomputers in the Top500 list with a total of 168 systems while AMD's CPUs and GPUs power a total of 121 supercomputers. At the same time, Supercomputers housing AMD and NVIDIA GPU-based accelerators are largely running Intel CPUs which cover around 400 supercomputers and that's a huge figure & while the number of systems running Intel CPUs are in a clear lead in quantity, AMD actually wins the crown for the fastest supercomputer around in the form of Frontier.
+
+<a href="{{ page.root }}/fig/4Top500_HPC_Clusters.png">
+<img src="{{ page.root }}/fig/4Top500_HPC_Clusters.png" alt="4 Top500 HPC Clusters" />
+</a>
+
+### Frontier
+
+HPE Cray EX235a, AMD Optimized 3rd Generation EPYC 64C 2GHz, **AMD Instinct MI250X**, Slingshot-11, HPE
+DOE/SC/Oak Ridge National Laboratory
+United States 	
+
+ * CPU cores 8,699,904 	
+ * Rmax (PFlop/s): 1,194.00 	
+ * Rpeak (PFlop/s) : 1,679.82 
+ * Power (kW) : 22,703
+
+### Summit
+
+IBM Power System AC922, IBM POWER9 22C 3.07GHz, **NVIDIA Volta GV100**, Dual-rail Mellanox EDR Infiniband, IBM
+DOE/SC/Oak Ridge National Laboratory
+United States 
+
+ * CPU cores 2,414,592
+ * Rmax (PFlop/s): 148.60	
+ * Rpeak (PFlop/s) : 200.79 
+ * Power (kW) : 10,096
+
+
+## WVU High-Performance Computer Clusters
+
+West Virginia University has 2 main clusters: Thorny Flat and Dolly Sods, our newest cluster that will be available later in August 2023.
+
+<a href="{{ page.root }}/fig/WVU_HPC_Clusters.png">
+<img src="{{ page.root }}/fig/WVU_HPC_Clusters.png" alt="WVU HPC Clusters" style="width:100%" />
+</a>
+
+### Thorny Flat
+
+Thorny Flat is a general-purpose HPC cluster with 178 compute nodes, most nodes have 40 CPU cores. The total CPU core count is 6516 cores. 
+There are 47 NVIDIA GPU cards ranging from P6000, RTX6000, and A100
+
+### Dolly Sods
+
+Dolly Sods is our newest cluster and it is specialized in GPU computing. It has 37 nodes and 155 NVIDIA GPU cards ranging from A30, A40 and A100.
+The total CPU core count is 1248.
+
+
 ## GPUs on Thorny Flat
 
 **NVIDIA Quadro RTX6000**
@@ -151,5 +206,41 @@ Thorny Flat has several machines with GPUs the output in one of them is:
 +-----------------------------------------------------------------------------+
 ~~~
 {: .output}
+
+## Launching interactive sessions with GPUs
+
+A very simple way of launching an interactive job is using the command ``srun``:
+The following is an example of a request for an interactive job asking for 1 GPU 8 CPU cores for 2 hours:
+
+	trcis001:~$ srun -p comm_gpu_inter -G 1 -t 2:00:00 -c 8 --pty bash
+
+You can verify the assigned GPU using the command nvidia-smi:
+
+	trcis001:~$ srun -p comm_gpu_inter -G 1 -t 2:00:00 -c 8 --pty bash
+	srun: job 22599 queued and waiting for resources
+	srun: job 22599 has been allocated resources
+	tbegq200:~$ nvidia-smi
+	Wed Jan 18 13:27:01 2023
+	+-----------------------------------------------------------------------------+
+	| NVIDIA-SMI 515.43.04    Driver Version: 515.43.04    CUDA Version: 11.7     |
+	|-------------------------------+----------------------+----------------------+
+	| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+	| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+	|                               |                      |               MIG M. |
+	|===============================+======================+======================|
+	|   0  NVIDIA A100-PCI...  Off  | 00000000:3B:00.0 Off |                    0 |
+	| N/A   28C    P0    31W / 250W |      0MiB / 40960MiB |      0%      Default |
+	|                               |                      |             Disabled |
+	+-------------------------------+----------------------+----------------------+
+
+	+-----------------------------------------------------------------------------+
+	| Processes:                                                                  |
+	|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+	|        ID   ID                                                   Usage      |
+	|=============================================================================|
+	|  No running processes found                                                 |
+	+-----------------------------------------------------------------------------+
+
+The command above shows an NVIDIA A100 as the GPU assigned to us during the lifetime of the job.
 
 {% include links.md %}
