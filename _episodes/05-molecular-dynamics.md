@@ -318,6 +318,21 @@ cutoff of $$2.5 \sigma$$
 Specify the pairwise force field coefficients for one or more pairs of atom types.
 
 
+#### ``fix 1 nve``
+
+Perform plain time integration to update position and velocity for atoms in the group each timestep. 
+This creates a system trajectory consistent with the microcanonical ensemble (NVE) provided there are (full) periodic boundary conditions and no other “manipulations” of the system (e.g. fixes that modify forces or velocities).
+
+The primary macroscopic variables of the microcanonical ensemble are the total number of 
+particles in the system N, the system's volume V, as well as the total energy in the system E. 
+Each of these is assumed to be constant in the ensemble.
+
+#### ``run``
+
+This command tell us to compute the trajectory during a given number of iterations. 
+In this case we set 300 steps
+
+
 ## How to run LAMMPS using GPUs
 
 Submit a request for an interactive job:
