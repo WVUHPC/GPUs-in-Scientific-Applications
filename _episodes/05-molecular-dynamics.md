@@ -280,6 +280,43 @@ the simulation box via the create_box command.
 The region is identified with the name "box" and for style block, the indices from 1 to 6 correspond 
 to the xlo, xhi, ylo, yhi, zlo, zhi surfaces of the block. 
 
+#### ``create_box``
+
+This command creates a simulation box based on the specified region. Thus a region command must first be used to define a geometric domain. It also partitions the simulation box into a regular 3d grid of rectangular bricks, one per processor, based on the number of processors being used and the settings of the processors command. 
+
+We will have just one box in the region that we defined.
+
+#### ``create_atoms``
+
+This command creates atoms (or molecules) within the simulation box, either on a lattice, or a single atom (or molecule), or on a surface defined by a triangulated mesh, or a random collection of atoms (or molecules). 
+
+For the box style, the ``create_atoms`` command fills the entire simulation box with particles on the lattice.
+
+#### ``mass``
+
+Set the mass for all atoms of one or more atom types. Per-type mass values can also be set in the read_data data file using the “Masses” keyword. See the units command for what mass units to use.
+
+We only have one type of atoms and the mass is unitless for lj 
+
+#### ``velocity``
+
+Set or change the velocities of a group of atoms in one of several styles. 
+For each style, there are required arguments and optional keyword/value parameters. 
+
+In our case we are associating random values of velocity for all the particles.
+The create style generates an ensemble of velocities using a random number generator 
+with the specified seed at the specified temperature.
+
+#### ``pair_style``
+
+Set the formula LAMMPS uses to compute pairwise interactions. 
+The particles in our simulation box are all suject to pair-wise interactions with an energy 
+cutoff of $$2.5 \sigma$$
+
+#### ``pair_coeff``
+
+Specify the pairwise force field coefficients for one or more pairs of atom types.
+
 
 ## How to run LAMMPS using GPUs
 
@@ -422,6 +459,18 @@ equal to the number of physical GPUs on the node.
 In our case we have ``-k on g ${gpu_count}``
 
 The suffix to the style is kk for the particles to be accelerated with GPUs
+Our simulation is creating more than 27 million atoms:
+
+    LAMMPS (3 Nov 2022)           
+    KOKKOS mode is enabled (src/KOKKOS/kokkos.cpp:106) 
+      will use up to 3 GPU(s) per node       
+      using 1 OpenMP thread(s) per MPI task    
+    Lattice spacing in x,y,z = 1.6795962 1.6795962 1.6795962  
+    Created orthogonal box = (0 0 0) to (403.10309 201.55154 403.10309)  
+      1 by 1 by 3 MPI processor grid                                
+    Created 27648000 atoms                                   
+      using lattice units in orthogonal box = (0 0 0) to (403.10309 201.55154 403.10309) 
+      create_atoms CPU = 3.062 seconds             
 
 At the end of the simulation you get some stats about the performance
 
@@ -491,6 +540,34 @@ without GPUs will be:
 
 And the results:
 
+    Performance: 87.807 tau/day, 0.203 timesteps/s, 5.620 Matom-step/s
+    96.4% CPU use with 3 MPI tasks x 1 OpenMP threads
     
+    MPI task timing breakdown:
+    Section |  min time  |  avg time  |  max time  |%varavg| %total
+    ---------------------------------------------------------------
+    Pair    | 1109.8     | 1163.9     | 1232.7     | 150.1 | 78.86
+    Neigh   | 161.57     | 164.1      | 167.77     |  20.7 | 11.12
+    Comm    | 13.422     | 94.55      | 155.54     | 614.4 |  6.41
+    Output  | 0.03208    | 0.040559   | 0.045395   |   3.0 |  0.00
+    Modify  | 38.403     | 41.45      | 47.511     |  66.6 |  2.81
+    Other   |            | 11.91      |            |       |  0.81
+    
+    Nlocal:      9.216e+06 ave 9.21655e+06 max 9.21558e+06 min
+    Histogram: 1 0 0 1 0 0 0 0 0 1
+    Nghost:         811154 ave      811431 max      810677 min
+    Histogram: 1 0 0 0 0 0 0 0 1 1
+    Neighs:    3.45335e+08 ave 3.45582e+08 max 3.45106e+08 min
+    Histogram: 1 0 0 0 1 0 0 0 0 1
+    
+    Total # of neighbors = 1.0360058e+09
+    Ave neighs/atom = 37.471275
+    Neighbor list builds = 15
+    Dangerous builds not checked
+    Total wall time: 0:24:49
+
+Not using the GPUs makes the simulation take 24 minutes. 
+The 3 GPUs lower the time of simulation to just 40 seconds
+
 
 {% include links.md %}
